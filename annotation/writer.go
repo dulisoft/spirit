@@ -55,12 +55,7 @@ func (c *CommonWriter) Write() error {
 	return nil
 }
 
-func WirteTemplate(app any, templatePath, filePath string) error {
-	tmpl, err := template.ParseFiles(templatePath)
-	if err != nil {
-		log.Println("Parse template  Files Template:", err)
-	}
-
+func WirteTemplate(tmpl *template.Template, app any, filePath string) error {
 	destFile, err := os.Create(filePath)
 	if err != nil {
 		log.Println("Open Files Error:", err)

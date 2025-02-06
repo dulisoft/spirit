@@ -10,6 +10,7 @@ import (
 {{- /* a comment */}}
 
 func main() {
+    InitObjectPool()
 	r := gin.Default()
     {{ range .Routers }}
         r.Handle("{{.Method}}", "{{.Path}}", {{.Handler}})

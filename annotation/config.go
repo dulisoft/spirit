@@ -4,19 +4,19 @@ var (
 	APP_NAME             = "bear"
 	PORT                 = "8888"                                                    //端口
 	ROUTER_PATH          = "D:/workspace/go/pro/personal/spirit/annotation/examples" //路由文件的名称
-	TEMPLATE_DIR         = "D:/workspace/go/pro/personal/spirit/annotation/templates"
+	TEMPLATE_DIR         = "templates"
 	ROUTER_TEMPLATE_NAME = "router.tmpl"
 )
 
 const (
-	RouterAnnotation     = "@Router"
-	ControllerAnnotation = "@Controller"
+	ANNOTATION_PREFIX = "@"
+	ANNOTATION_ROUTER = "Router"
 )
 
-func getRouterTemplatePath() string {
-	return TEMPLATE_DIR + "/" + ROUTER_TEMPLATE_NAME
-}
-
-func getMainCodePath() string {
-	return ROUTER_PATH + "/" + APP_NAME + "/main.go"
-}
+const (
+	STATIC    = iota //静态变量
+	VARIABLE         //变量
+	STRUCT           //结构体
+	METHOD           //方法
+	FUNCTIONS        //函数
+)

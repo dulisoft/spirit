@@ -9,16 +9,13 @@ import (
 	"strings"
 )
 
-const ANNOTATION_PREFIX = "@"
-const (
-	STATIC   = iota //静态变量
-	VARIABLE        //变量
-	STRUCT          //结构体
-	METHOD          //方法
-	FUNC            //函数
-)
-
 var anoRegexp, _ = regexp.Compile("@\\w+")
+
+// IdentType 类型描述
+type IdentType struct {
+	Path string
+	Name string
+}
 
 // AnnoWork 注解工作方法
 type AnnoWork func(anno *Annotation) error
@@ -40,38 +37,49 @@ type Position struct {
 // Object 被注解对象
 type Object struct {
 	Name     string    //名称
-	Pkg      string    //包名
-	Path     string    //路径
+	PkgPath  string    //包路径
+	PkgName  string    //包名称
 	FuncSign *FuncSign //方法签名
 }
 
 type FuncSign struct {
-	Reveiver string   //方法的接受者
-	Args     []string //参数类型数组
-	Resps    []string //返回值
+	Reveiver IdentType    //方法的接受者
+	Args     []*IdentType //参数类型数组
+	Returns  []*IdentType //返回值
 }
 
-func ParseGoFileFunc(filePath string) ([]*Annotation, error) {
+func (obj Object) Import() string {
+	if strings.HasSuffix(obj.PkgPath, obj.PkgName) {
+		return obj.PkgPath
+	}
+	return obj.PkgName + " " + obj.PkgPath
+}
+
+func ParseGoFileDecls(filePath string) ([]*Annotation, map[string]string, error) {
 	astFile, err := ParseFile(filePath)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
+	importDict := make(map[string]string)
 	annotations := make([]*Annotation, 0)
 	for _, decl := range astFile.Decls {
 		switch f := decl.(type) {
 		case *ast.FuncDecl:
-			annotations = append(annotations, parseFuncDecl(f)...)
+			annotations = append(annotations, parseFuncDecl(f, astFile.Name.Name)...)
 		case *ast.GenDecl:
 			annotations = append(annotations, parseGenDecl(f)...)
+			if f.Tok == token.IMPORT {
+				importDict[""] = f.Tok.String()
+			}
 		default:
 			panic(fmt.Sprintf("sytax error,position: %v", f.Pos()))
 		}
 	}
-	return annotations, nil
+	return annotations, importDict, nil
 }
 
 // parseFuncDecl 解析方法
-func parseFuncDecl(funcDecl *ast.FuncDecl) (ans []*Annotation) {
+func parseFuncDecl(funcDecl *ast.FuncDecl, pkgName string) (ans []*Annotation) {
 	if funcDecl.Doc == nil {
 		return
 	}
@@ -81,28 +89,32 @@ func parseFuncDecl(funcDecl *ast.FuncDecl) (ans []*Annotation) {
 	}
 	for _, cmt := range funcDecl.Doc.List {
 		cmtLine := cmt.Text
-		if strings.Contains(cmtLine, ANNOTATION_PREFIX) {
+		if !strings.Contains(cmtLine, ANNOTATION_PREFIX) {
 			continue
 		}
 		cmts := parserCmt(cmtLine)
 		if len(cmts) <= 0 {
 			continue
 		}
-		ano := &Annotation{
-			Name:  cmts[0],
-			Kind:  0,
+		anno := &Annotation{
+			Name:  strings.TrimPrefix(cmts[0], ANNOTATION_PREFIX),
+			Kind:  METHOD,
 			Props: cmts[1:],
 			obj: Object{
-				Name: funcDecl.Name.Name,
-				Pkg:  "",
-				Path: "",
+				Name:     funcDecl.Name.Name,
+				PkgName:  pkgName,
+				FuncSign: parseFuncSign(funcDecl),
 			},
 			pos: Position{
 				DocBegin: int(funcDecl.Doc.Pos()),
 				DeclEnd:  int(funcDecl.Body.End()),
 			},
 		}
-		ans = append(ans, ano)
+		//判断是方法还是函数
+		if funcDecl.Recv == nil {
+			anno.Kind = FUNCTIONS
+		}
+		ans = append(ans, anno)
 	}
 	return ans
 }
@@ -126,13 +138,13 @@ func parseGenDecl(genDecl *ast.GenDecl) (ans []*Annotation) {
 			continue
 		}
 		ano := &Annotation{
-			Name:  cmts[0],
+			Name:  strings.TrimPrefix(cmts[0], ANNOTATION_PREFIX),
 			Kind:  0,
 			Props: cmts[1:],
 			obj: Object{
-				Name: genDecl.Tok.String(),
-				Pkg:  "",
-				Path: "",
+				Name:    genDecl.Tok.String(),
+				PkgPath: "",
+				PkgName: "",
 			},
 			pos: Position{
 				DocBegin: int(genDecl.Doc.Pos()),
@@ -144,6 +156,90 @@ func parseGenDecl(genDecl *ast.GenDecl) (ans []*Annotation) {
 	return ans
 }
 
+// parseFuncSign  解析方法签名
+func parseFuncSign(funcDecl *ast.FuncDecl) *FuncSign {
+	funcSign := &FuncSign{}
+	if funcDecl.Recv != nil {
+		starIdent := parserStartExpr(funcDecl.Recv.List[0].Type)
+		if starIdent != nil {
+			funcSign.Reveiver = IdentType{
+				Path: "",
+				Name: starIdent.Name,
+			}
+		}
+	}
+	if funcDecl.Type.Params != nil {
+		for _, field := range funcDecl.Type.Params.List {
+			xIdent, selIdent := parserSelectExpr(field.Type)
+			arg := new(IdentType)
+			if xIdent != nil && selIdent != nil {
+				arg = &IdentType{
+					Path: xIdent.Name,
+					Name: selIdent.Name,
+				}
+			}
+			if xIdent == nil && selIdent != nil {
+				arg = &IdentType{
+					Path: "",
+					Name: selIdent.Name,
+				}
+			}
+			if arg != new(IdentType) {
+				funcSign.Args = append(funcSign.Args, arg)
+			}
+		}
+	}
+	if funcDecl.Type.Results != nil {
+		for _, field := range funcDecl.Type.Results.List {
+			xIdent, selIdent := parserSelectExpr(field.Type)
+			re := new(IdentType)
+			if xIdent != nil && selIdent != nil {
+				re = &IdentType{
+					Path: xIdent.Name,
+					Name: selIdent.Name,
+				}
+			}
+			if xIdent == nil && selIdent != nil {
+				re = &IdentType{
+					Path: "",
+					Name: selIdent.Name,
+				}
+			}
+			if re != new(IdentType) {
+				funcSign.Returns = append(funcSign.Returns, re)
+			}
+		}
+	}
+	return funcSign
+}
+
+func parserStartExpr(expr ast.Expr) *ast.Ident {
+	startExpr, ok := expr.(*ast.StarExpr)
+	if ok {
+		starIdent, ok := startExpr.X.(*ast.Ident)
+		if ok {
+			return starIdent
+		}
+	}
+	return nil
+}
+
+func parserSelectExpr(expr ast.Expr) (*ast.Ident, *ast.Ident) {
+	selectExpr, ok := expr.(*ast.StarExpr)
+	if ok {
+		selectExpr, ok := selectExpr.X.(*ast.SelectorExpr)
+		if !ok {
+			return nil, nil
+		}
+		xIdent, ok := selectExpr.X.(*ast.Ident)
+		if ok {
+			return xIdent, selectExpr.Sel
+		}
+		return nil, selectExpr.Sel
+	}
+	return nil, nil
+}
+
 func parserCmt(cmt string) []string {
 	cmt = strings.TrimLeft(cmt, "//")
 	ans := strings.Split(cmt, " ")
@@ -152,25 +248,11 @@ func parserCmt(cmt string) []string {
 	for i := 0; i < len(ans); i++ {
 		if ans[i] != "" {
 			ans[j] = ans[i]
+			ans[i] = ""
 			j++
 		}
 	}
-	return ans
-}
-
-func getFuncReceiver(recv *ast.FieldList) string {
-	if recv == nil || len(recv.List) <= 0 {
-		return ""
-	}
-	startExpr, ok := recv.List[0].Type.(*ast.StarExpr)
-	if !ok {
-		return ""
-	}
-	ident, ok := startExpr.X.(*ast.Ident)
-	if !ok {
-		return ""
-	}
-	return ident.Name
+	return ans[:j]
 }
 
 func ParseFile(filePath string) (*ast.File, error) {

@@ -9,6 +9,11 @@ import (
 // 此处的初始化，应该给出默认的new(T)对象
 var pool = make(map[string]InitObject)
 
+type InitObject struct {
+	Obj any
+	Has bool
+}
+
 func Init[T any]() {
 	uniqueKey := TypePack[T]()
 	pool[uniqueKey] = InitObject{
@@ -23,11 +28,6 @@ func Put[T any](t *T) {
 		Has: true,
 		Obj: t,
 	}
-}
-
-type InitObject struct {
-	Obj any
-	Has bool
 }
 
 // 使用反射来根据类型名称创建对象
