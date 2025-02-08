@@ -1,6 +1,10 @@
 package annotation
 
-//TypePack 反射出类型的具体包名称
+import (
+	"strings"
+)
+
+// TypePack 反射出类型的具体包名称
 func TypePack[T any]() string {
 	return ""
 }
@@ -15,4 +19,14 @@ func UniqueSlice(ds []string) []string {
 		}
 	}
 	return results
+}
+
+func ParseImportName(path string) string {
+	path = strings.Trim(path, `"`)
+	ims := strings.Split(path, "/")
+	return ims[len(ims)-1]
+}
+
+func parseMethod(m string) string {
+	return strings.ToUpper(strings.Trim(m, "[]"))
 }

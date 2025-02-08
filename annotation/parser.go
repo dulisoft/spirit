@@ -55,12 +55,12 @@ func (obj Object) Import() string {
 	return obj.PkgName + " " + obj.PkgPath
 }
 
-func ParseGoFileDecls(filePath string) ([]*Annotation, map[string]string, error) {
+func ParseGoFileDecls(filePath string) ([]*Annotation, map[string]*IdentType, error) {
 	astFile, err := ParseFile(filePath)
 	if err != nil {
 		return nil, nil, err
 	}
-	importDict := make(map[string]string)
+	importDict := make(map[string]*IdentType)
 	annotations := make([]*Annotation, 0)
 	for _, decl := range astFile.Decls {
 		switch f := decl.(type) {
@@ -69,7 +69,11 @@ func ParseGoFileDecls(filePath string) ([]*Annotation, map[string]string, error)
 		case *ast.GenDecl:
 			annotations = append(annotations, parseGenDecl(f)...)
 			if f.Tok == token.IMPORT {
-				importDict[""] = f.Tok.String()
+				//import的理论上只有一个地方
+				importDict, err = parserImports(f)
+				if err != nil {
+					fmt.Printf("parse import error %v", err.Error())
+				}
 			}
 		default:
 			panic(fmt.Sprintf("sytax error,position: %v", f.Pos()))
@@ -154,6 +158,29 @@ func parseGenDecl(genDecl *ast.GenDecl) (ans []*Annotation) {
 		ans = append(ans, ano)
 	}
 	return ans
+}
+
+// parserImports  解析import
+func parserImports(importDecl *ast.GenDecl) (map[string]*IdentType, error) {
+	if importDecl.Tok != token.IMPORT {
+		return nil, fmt.Errorf("not import token")
+	}
+	importDict := make(map[string]*IdentType)
+	for i := range importDecl.Specs {
+		spec, ok := importDecl.Specs[i].(*ast.ImportSpec)
+		if !ok {
+			continue
+		}
+		key := ParseImportName(spec.Path.Value)
+		if spec.Name != nil {
+			key = spec.Name.Name
+		}
+		importDict[key] = &IdentType{
+			Name: key,
+			Path: strings.Trim(spec.Path.Value, `"`),
+		}
+	}
+	return importDict, nil
 }
 
 // parseFuncSign  解析方法签名

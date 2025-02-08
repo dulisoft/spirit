@@ -26,7 +26,7 @@ var examples []*userExample
 // @Param        message  body      userExample  true  "Greeter Info"
 // @Success      200      {string}  string         "success"
 // @Failure      500      {string}  string         "fail"
-// @Router       /greeter/post [post]
+// @Router       /greeter/user [post]
 func (s *UserService) GetExample(c *gin.Context) {
 	var e = &userExample{}
 

@@ -8,7 +8,6 @@ import (
 )
 
 func InitObjectPool() {
-
-	annotation.Put[example.GreeterService](PostExample)
-	annotation.Put[user.UserService](GetExample)
+	annotation.Put(new(example.GreeterService))
+	annotation.Put(new(user.UserService))
 }

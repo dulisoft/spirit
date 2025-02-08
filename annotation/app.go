@@ -76,7 +76,7 @@ func (a *App) parese() error {
 			return nil
 		}
 		//处理文件
-		annos, err := ParseGoFileDecls(path)
+		annos, _, err := ParseGoFileDecls(path)
 		if err != nil {
 			return err
 		}
@@ -109,7 +109,7 @@ func (a *App) serviceMode() (string, error) {
 }
 
 func (a *App) WritePool() error {
-	tmplData := &PoolTmplData{
+	tmplData := &templates.PoolTmplData{
 		Pkg: "main",
 	}
 
@@ -119,11 +119,11 @@ func (a *App) WritePool() error {
 			continue
 		}
 		tmplData.Imports = append(tmplData.Imports, anno.obj.Import())
-		obj := PoolObject{
-			Type: anno.obj.FuncSign.Reveiver.Name,
-			Obj:  anno.obj.Name,
+		obj := templates.PoolObject{
+			Type:    anno.obj.FuncSign.Reveiver.Name,
+			TypePkg: anno.obj.PkgName,
 		}
-		key := fmt.Sprintf("%v-%v", obj.Type, obj.Obj)
+		key := fmt.Sprintf("%v-%v", obj.Type, obj.TypePkg)
 		if _, has := objUniqueDict[key]; !has {
 			tmplData.Objects = append(tmplData.Objects, obj)
 			objUniqueDict[key] = 1
@@ -135,7 +135,8 @@ func (a *App) WritePool() error {
 }
 
 func (a *App) WriteMain() error {
-	tmplData := &RouterTmplData{
+	tmplData := &templates.RouterTmplData{
+		Pkg:  "main",
 		Port: a.Port,
 	}
 	for _, anno := range a.Annotations {
@@ -147,10 +148,12 @@ func (a *App) WriteMain() error {
 		if len(anno.Props) < 2 {
 			panic(fmt.Sprintf("invalid router annotation %v", anno.obj.PkgPath))
 		}
-		tmplData.Routers = append(tmplData.Routers, SingleRouter{
-			Method:  anno.Props[1],
-			Path:    anno.Props[0],
-			Handler: anno.obj.Name,
+		tmplData.Routers = append(tmplData.Routers, templates.SingleRouter{
+			Method:         parseMethod(anno.Props[1]),
+			Path:           anno.Props[0],
+			Handler:        anno.obj.Name,
+			HandlerType:    anno.obj.FuncSign.Reveiver.Name,
+			HandlerTypePkg: anno.obj.PkgName,
 		})
 	}
 	return WirteTemplate(templates.RouterTemplate, tmplData, a.mainGoPath())

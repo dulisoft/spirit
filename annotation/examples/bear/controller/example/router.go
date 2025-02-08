@@ -3,7 +3,7 @@ package example
 import (
 	"fmt"
 
-	"github.com/gin-gonic/gin"
+	ginx "github.com/gin-gonic/gin"
 )
 
 type GreeterService struct {
@@ -27,7 +27,7 @@ var examples []*greeterExample
 // @Success      200      {string}  string         "success"
 // @Failure      500      {string}  string         "fail"
 // @Router       /greeter/post [post]
-func (s *GreeterService) PostExample(c *gin.Context) {
+func (s *GreeterService) PostExample(c *ginx.Context, ass *greeterExample) {
 	var e = &greeterExample{}
 
 	if err := c.ShouldBind(e); err != nil {
