@@ -42,7 +42,7 @@ func TestMatcher(t *testing.T) {
 		t.Fatal("not equal")
 	}
 
-	if ms := m.Match("/foo/xxx"); len(ms) != 2 {
+	if ms := m.Match("/foo/samber_lo"); len(ms) != 2 {
 		t.Fatal("not equal")
 	} else if !equal(ms, "logging", "foo/*") {
 		t.Fatal("not equal")
