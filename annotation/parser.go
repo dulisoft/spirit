@@ -9,6 +9,13 @@ import (
 	"strings"
 )
 
+const ANNOTATION_PREFIX = "//"
+
+var (
+	METHOD    = 1
+	FUNCTIONS = 2
+)
+
 var anoRegexp, _ = regexp.Compile("@\\w+")
 
 // IdentType 类型描述
@@ -40,12 +47,6 @@ type Object struct {
 	PkgPath  string    //包路径
 	PkgName  string    //包名称
 	FuncSign *FuncSign //方法签名
-}
-
-type FuncSign struct {
-	Reveiver IdentType    //方法的接受者
-	Args     []*IdentType //参数类型数组
-	Returns  []*IdentType //返回值
 }
 
 func (obj Object) Import() string {
