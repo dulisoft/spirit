@@ -1,23 +1,16 @@
 package config
 
-const (
-	//ProjectEnvKey recognize env of project, dev, release, production
-	ProjectEnvKey = "PROJECT_ENV"
-	//ProjectPrefix project env key prefix
-	ProjectPrefix = "PROJECT_PREFIX"
-	//DefaultPrefix  default config file name prefix
-	DefaultPrefix = "config"
-)
+import "github.com/dulisoft/spirit/core/config/sources"
 
 var manager *Manager
 
-//Manager config manager, hold the config
+// Manager config manager, hold the config
 type Manager struct {
 	Config
 }
 
-//Init config source, inconvenient for user, because of circular reference
-func Init(sources ...Source) {
+// Init config source, inconvenient for user, because of circular reference
+func Init(sources ...sources.Source) {
 	c := New(WithSource(sources...))
 	if err := c.Load(); err != nil {
 		panic(err)
@@ -31,7 +24,7 @@ func Load() {
 	}
 }
 
-//Scan any type
+// Scan any type
 func Scan[T any](keys ...string) T {
 	key := ""
 	if len(keys) > 0 && keys[0] != "" {

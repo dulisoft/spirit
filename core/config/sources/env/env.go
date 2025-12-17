@@ -1,30 +1,29 @@
 package env
 
 import (
+	"github.com/dulisoft/spirit/core/config/sources"
 	"os"
 	"strings"
-
-	"github.com/dulisoft/spirit/core/config"
 )
 
 type env struct {
 	prefixs []string
 }
 
-func NewSource(prefixs ...string) config.Source {
-	prefix := os.Getenv(config.ProjectPrefix)
+func NewSource(prefixs ...string) sources.Source {
+	prefix := os.Getenv(sources.ProjectPrefix)
 	if prefix != "" && len(prefixs) <= 0 {
 		prefixs = strings.Split(prefix, ";")
 	}
 	return &env{prefixs: prefixs}
 }
 
-func (e *env) Load() (kv []*config.KeyValue, err error) {
+func (e *env) Load() (kv []*sources.KeyValue, err error) {
 	return e.load(os.Environ()), nil
 }
 
-func (e *env) load(envStrings []string) []*config.KeyValue {
-	var kv []*config.KeyValue
+func (e *env) load(envStrings []string) []*sources.KeyValue {
+	var kv []*sources.KeyValue
 	for _, envstr := range envStrings {
 		var k, v string
 		subs := strings.SplitN(envstr, "=", 2) //nolint:gomnd
@@ -44,7 +43,7 @@ func (e *env) load(envStrings []string) []*config.KeyValue {
 		}
 
 		if len(k) != 0 {
-			kv = append(kv, &config.KeyValue{
+			kv = append(kv, &sources.KeyValue{
 				Key:   k,
 				Value: []byte(v),
 			})
@@ -53,7 +52,7 @@ func (e *env) load(envStrings []string) []*config.KeyValue {
 	return kv
 }
 
-func (e *env) Watch() (config.Watcher, error) {
+func (e *env) Watch() (sources.Watcher, error) {
 	w, err := NewWatcher()
 	if err != nil {
 		return nil, err

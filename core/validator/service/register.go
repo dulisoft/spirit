@@ -2,7 +2,7 @@ package service
 
 import (
 	"errors"
-	"github.com/dulisoft/spirit/core/telemetry/log"
+	log "github.com/dulisoft/spirit/core/log/zapx"
 	"github.com/go-playground/locales/en"
 	"github.com/go-playground/locales/zh"
 	ut "github.com/go-playground/universal-translator"

@@ -3,6 +3,7 @@ package config
 import (
 	"context"
 	"errors"
+	"github.com/dulisoft/spirit/core/config/sources"
 	"reflect"
 	"sync"
 	"time"
@@ -39,7 +40,7 @@ type config struct {
 	reader    Reader
 	cached    sync.Map
 	observers sync.Map
-	watchers  []Watcher
+	watchers  []sources.Watcher
 }
 
 // New ,new a config with options.
@@ -57,7 +58,7 @@ func New(opts ...Option) Config {
 	}
 }
 
-func (c *config) watch(w Watcher) {
+func (c *config) watch(w sources.Watcher) {
 	for {
 		kvs, err := w.Next()
 		if errors.Is(err, context.Canceled) {

@@ -5,6 +5,7 @@ import (
 	"encoding/gob"
 	"encoding/json"
 	"fmt"
+	"github.com/dulisoft/spirit/core/config/sources"
 	"github.com/dulisoft/spirit/core/log/zapx"
 	"strings"
 	"sync"
@@ -16,7 +17,7 @@ import (
 
 // Reader is config reader.
 type Reader interface {
-	Merge(...*KeyValue) error
+	Merge(...*sources.KeyValue) error
 	Value(string) (Value, bool)
 	Source() ([]byte, error)
 	Resolve() error
@@ -36,7 +37,7 @@ func newReader(opts options) Reader {
 	}
 }
 
-func (r *reader) Merge(kvs ...*KeyValue) error {
+func (r *reader) Merge(kvs ...*sources.KeyValue) error {
 	r.lock.Lock()
 	merged, err := cloneMap(r.values)
 	r.lock.Unlock()
