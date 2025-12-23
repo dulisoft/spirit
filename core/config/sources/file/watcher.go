@@ -5,8 +5,8 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/dulisoft/spirit/core/config/sources"
 	"github.com/fsnotify/fsnotify"
-	"github.com/dulisoft/spirit/core/config"
 )
 
 type watcher struct {
@@ -17,9 +17,9 @@ type watcher struct {
 	cancel context.CancelFunc
 }
 
-var _ config.Watcher = (*watcher)(nil)
+var _ sources.Watcher = (*watcher)(nil)
 
-func newWatcher(f *file) (config.Watcher, error) {
+func newWatcher(f *file) (sources.Watcher, error) {
 	fw, err := fsnotify.NewWatcher()
 	if err != nil {
 		return nil, err
@@ -31,7 +31,7 @@ func newWatcher(f *file) (config.Watcher, error) {
 	return &watcher{f: f, fw: fw, ctx: ctx, cancel: cancel}, nil
 }
 
-func (w *watcher) Next() ([]*config.KeyValue, error) {
+func (w *watcher) Next() ([]*sources.KeyValue, error) {
 	select {
 	case <-w.ctx.Done():
 		return nil, w.ctx.Err()
@@ -55,7 +55,7 @@ func (w *watcher) Next() ([]*config.KeyValue, error) {
 		if err != nil {
 			return nil, err
 		}
-		return []*config.KeyValue{kv}, nil
+		return []*sources.KeyValue{kv}, nil
 	case err := <-w.fw.Errors:
 		return nil, err
 	}

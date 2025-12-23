@@ -2,8 +2,7 @@ package env
 
 import (
 	"context"
-
-	"github.com/dulisoft/spirit/core/config"
+	"github.com/dulisoft/spirit/core/config/sources"
 )
 
 type watcher struct {
@@ -11,15 +10,15 @@ type watcher struct {
 	cancel context.CancelFunc
 }
 
-var _ config.Watcher = (*watcher)(nil)
+var _ sources.Watcher = (*watcher)(nil)
 
-func NewWatcher() (config.Watcher, error) {
+func NewWatcher() (sources.Watcher, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 	return &watcher{ctx: ctx, cancel: cancel}, nil
 }
 
 // Next will be blocked until the Stop method is called
-func (w *watcher) Next() ([]*config.KeyValue, error) {
+func (w *watcher) Next() ([]*sources.KeyValue, error) {
 	<-w.ctx.Done()
 	return nil, w.ctx.Err()
 }

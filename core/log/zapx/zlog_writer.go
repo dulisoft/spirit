@@ -32,6 +32,10 @@ func (z *ZapWriter) Alert(v interface{}) {
 	z.zapLogger.Error(fmt.Sprint(v))
 }
 
+func (z *ZapWriter) Debug(v any, fields ...logx.LogField) {
+	z.zapLogger.Debug(fmt.Sprint(v), toZapFields(fields...)...)
+}
+
 func (z *ZapWriter) Close() error {
 	return z.zapLogger.Sync()
 }

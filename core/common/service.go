@@ -1,6 +1,7 @@
 package common
 
 type ServerConf struct {
+	Name string  `json:"name"`
 	HttpConf `json:"http"`
 	SwagConf `json:"doc"`
 }

@@ -2,26 +2,25 @@ package file
 
 import (
 	"fmt"
+	"github.com/dulisoft/spirit/core/config/sources"
 	"io"
 	"os"
 	"path/filepath"
 	"strings"
-
-	"github.com/dulisoft/spirit/core/config"
 )
 
-var _ config.Source = (*file)(nil)
+var _ sources.Source = (*file)(nil)
 
 type file struct {
 	path string
 }
 
 // NewSource new a file source.
-func NewSource(path string) config.Source {
+func NewSource(path string) sources.Source {
 	return &file{path: path}
 }
 
-func (f *file) loadFile(path string) (*config.KeyValue, error) {
+func (f *file) loadFile(path string) (*sources.KeyValue, error) {
 	file, err := os.Open(path)
 	if err != nil {
 		return nil, err
@@ -35,27 +34,27 @@ func (f *file) loadFile(path string) (*config.KeyValue, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &config.KeyValue{
+	return &sources.KeyValue{
 		Key:    info.Name(),
 		Format: format(info.Name()),
 		Value:  data,
 	}, nil
 }
 
-func (f *file) loadDir(path string) (kvs []*config.KeyValue, err error) {
+func (f *file) loadDir(path string) (kvs []*sources.KeyValue, err error) {
 	files, err := os.ReadDir(path)
 	if err != nil {
 		return nil, err
 	}
 
-	envPrefix := AppendEnv(config.DefaultPrefix) + "."
+	envPrefix := AppendEnv(sources.DefaultPrefix) + "."
 	for _, file := range files {
 		fileName := file.Name()
 		// ignore hidden files
 		if file.IsDir() || strings.HasPrefix(fileName, ".") {
 			continue
 		}
-		if strings.HasPrefix(fileName, config.DefaultPrefix) && !strings.HasPrefix(fileName, envPrefix) {
+		if strings.HasPrefix(fileName, sources.DefaultPrefix) && !strings.HasPrefix(fileName, envPrefix) {
 			continue
 		}
 		kv, err := f.loadFile(filepath.Join(path, file.Name()))
@@ -67,7 +66,7 @@ func (f *file) loadDir(path string) (kvs []*config.KeyValue, err error) {
 	return
 }
 
-func (f *file) Load() (kvs []*config.KeyValue, err error) {
+func (f *file) Load() (kvs []*sources.KeyValue, err error) {
 	fi, err := os.Stat(f.path)
 	if err != nil {
 		return nil, err
@@ -79,15 +78,15 @@ func (f *file) Load() (kvs []*config.KeyValue, err error) {
 	if err != nil {
 		return nil, err
 	}
-	return []*config.KeyValue{kv}, nil
+	return []*sources.KeyValue{kv}, nil
 }
 
-func (f *file) Watch() (config.Watcher, error) {
+func (f *file) Watch() (sources.Watcher, error) {
 	return newWatcher(f)
 }
 
 func projectEnv() string {
-	env, has := os.LookupEnv(config.ProjectEnvKey)
+	env, has := os.LookupEnv(sources.ProjectEnvKey)
 	if has {
 		return strings.ToLower(env)
 	}
